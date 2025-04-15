@@ -1,42 +1,32 @@
 <script setup>
+import { ref } from 'vue'
 import VerticalNavSectionTitle from '@/@layouts/components/VerticalNavSectionTitle.vue'
 import VerticalNavLayout from '@layouts/components/VerticalNavLayout.vue'
 import VerticalNavLink from '@layouts/components/VerticalNavLink.vue'
 import { useTheme } from 'vuetify'
 
-// Components
 import Footer from '../ui/Footer.vue'
 import NavbarThemeSwitcher from '../ui/DarkModeAndLightMode.vue'
 import UserProfile from '../ui/UserProfile.vue'
 import { useUserStore } from '@/stores/userStore'
 
 const userStore = useUserStore()
-
-const hasRole = role => {
-  return userStore.roles?.includes(role) ?? false
-}
-
 const vuetifyTheme = useTheme()
 
-// Danh sách menu
+const searchQuery = ref('')
+const isMobileSearchOpen = ref(false)
+
+const hasRole = role => userStore.roles?.some(userRole => userRole.name === role) ?? false
+
 const menuItems = [
-  { type: 'link', title: 'Dashboard', icon: 'bx-home', to: '/admin/dashboard', roles: [] },
+  { type: 'link', title: 'Trang Chủ', icon: 'bx-home', to: '/admin/dashboard', roles: [] },
+  { type: 'section', heading: 'Quản lý Chat', roles: ['admin'] },
+  { type: 'link', title: 'Tin nhắn', icon: 'bx-chat', to: '/admin/messages', roles: ['admin'] },
+  { type: 'section', heading: 'Quản lý Nhóm', roles: ['admin'] },
+  { type: 'link', title: 'Nhóm Chat', icon: 'bx-group', to: '/admin/groups', roles: ['admin'] },
+  { type: 'section', heading: 'Quản lý Người Dùng', roles: ['admin'] },
+  { type: 'link', title: 'Danh sách người dùng', icon: 'bx-user', to: '/admin/users', roles: ['admin'] },
 
-  { type: 'section', heading: 'Quản lý Sản phẩm', roles: ['admin', 'manager', 'sale'] },
-  { type: 'link', title: 'Danh mục', icon: 'bx-list-ul', to: '/admin/category', roles: ['admin', 'manager', 'sale'] },
-  { type: 'link', title: 'Sản phẩm', icon: 'bx-box', to: '/admin/product', roles: ['admin', 'manager', 'sale'] },
-
-  { type: 'section', heading: 'Quản lý Bán hàng', roles: ['admin', 'sale', 'manager'] },
-  { type: 'link', title: 'Đơn hàng', icon: 'bx-cart', to: '/admin/order', roles: ['admin', 'sale', 'manager'] },
-  { type: 'link', title: 'Khuyến mãi', icon: 'bx-gift', to: '/admin/discount', roles: ['admin', 'manager'] },
-  { type: 'link', title: 'Doanh Thu', icon: 'bx-package', to: '/admin/revenue', roles: ['admin', 'manager'] },
-
-  { type: 'section', heading: 'Quản lý Kho & nhà cung cấp', roles: ['admin', 'warehouseworker', 'manager'] },
-  { type: 'link', title: 'Nhà cung cấp', icon: 'bx-package', to: '/admin/supplier', roles: ['admin', 'warehouseworker', 'manager'] },
-  { type: 'link', title: 'Kho hàng', icon: 'bx-package', to: '/admin/inventory', roles: ['admin', 'warehouseworker', 'manager'] },
-  { type: 'link', title: 'Nhân viên', icon: 'bx-user', to: '/admin/employee', roles: ['admin', 'manager'] },
-  { type: 'section', heading: 'Khác', roles: ['admin', 'manager'] },
-  { type: 'link', title: 'Đánh giá', icon: 'bx-star', to: '/admin/review', roles: ['admin', 'manager'] },
 ]
 </script>
 
@@ -44,38 +34,42 @@ const menuItems = [
   <VerticalNavLayout>
     <!-- 👉 Navbar -->
     <template #navbar="{ toggleVerticalOverlayNavActive }">
-      <div class="d-flex h-100 align-center">
-        <IconBtn class="ms-n3 d-lg-none" @click="toggleVerticalOverlayNavActive(true)">
-          <VIcon icon="bx-menu" />
-        </IconBtn>
-
-        <div class="d-flex align-center cursor-pointer" style="user-select: none;">
-          <IconBtn>
-            <VIcon icon="bx-home" />
+      <div class="d-flex align-center w-100 px-4 h-100">
+        <!-- Left: Toggle + Search -->
+        <div class="d-flex align-center flex-grow-1">
+          <IconBtn class="ms-n3 d-lg-none" @click="toggleVerticalOverlayNavActive(true)">
+            <VIcon icon="bx-menu" />
           </IconBtn>
-          <span class="d-none d-md-flex align-center">
-            <span class="me-3">Trang Quản Trị</span>
-          </span>
+
+          <div class="d-flex align-center flex-grow-1">
+            <VTextField v-model="searchQuery" density="compact" hide-details placeholder="Tìm kiếm..."
+              prepend-inner-icon="mdi-magnify" variant="solo-filled" class="search-input"
+              v-show="!isMobileSearchOpen" />
+          </div>
         </div>
 
-        <VSpacer />
-        <IconBtn class="me-2">
-          <VIcon icon="bx-bell" />
+        <!-- 🔍 Search icon (mobile) -->
+        <IconBtn class="d-flex d-md-none ms-2" @click="isMobileSearchOpen = true">
+          <VIcon icon="mdi-magnify" />
         </IconBtn>
 
-        <NavbarThemeSwitcher class="me-2" />
-        <UserProfile />
+        <!-- Right actions -->
+        <div class="d-flex align-center">
+          <IconBtn class="me-2">
+            <VIcon icon="bx-bell" />
+          </IconBtn>
+
+          <NavbarThemeSwitcher class="me-2" />
+          <UserProfile />
+        </div>
       </div>
     </template>
 
     <!-- 👉 Sidebar Menu -->
     <template #vertical-nav-content>
       <template v-for="item in menuItems" :key="item.title || item.heading">
-        <!-- Render Section Title -->
         <VerticalNavSectionTitle v-if="item.type === 'section' && item.roles.some(hasRole)"
           :item="{ heading: item.heading }" />
-
-        <!-- Render Links -->
         <VerticalNavLink v-if="item.type === 'link' && (item.roles.length === 0 || item.roles.some(hasRole))"
           :item="{ title: item.title, icon: item.icon, to: item.to }" />
       </template>
@@ -88,5 +82,36 @@ const menuItems = [
     <template #footer>
       <Footer />
     </template>
+
+    <!-- 🔍 Mobile Search Dialog -->
+    <VDialog v-model="isMobileSearchOpen" fullscreen scrollable transition="dialog-bottom-transition">
+      <VCard class="pa-3">
+        <div class="d-flex align-center">
+          <VIcon icon="mdi-magnify" class="me-2" />
+          <VTextField v-model="searchQuery" placeholder="Tìm kiếm..." hide-details variant="solo" class="flex-grow-1"
+            autofocus />
+          <IconBtn @click="isMobileSearchOpen = false">
+            <VIcon icon="mdi-close" />
+          </IconBtn>
+        </div>
+      </VCard>
+    </VDialog>
   </VerticalNavLayout>
 </template>
+
+
+<style scoped>
+.search-input {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 1rem;
+  border: 1px solid rgb(62, 51, 51);
+  border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+  .search-input {
+    display: none;
+  }
+}
+</style>

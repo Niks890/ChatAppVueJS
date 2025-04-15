@@ -13,6 +13,7 @@ export const userAvatar = computed(() => userStore.avatar);
 export const userPosition = computed(() => userStore.position);
 
 export async function getInfoUser() {
+    // Nếu roles đã có trong store, trả lại thông tin từ store
     if (userStore.roles.length) {
         return {
             name: userStore.name,
@@ -22,10 +23,22 @@ export async function getInfoUser() {
             position: userStore.position
         };
     }
+
+    // Nếu không có dữ liệu, gọi API để lấy thông tin người dùng
     try {
         const response = await api.post('/me');
-        const roles = response.data.roles ? response.data.roles.split(',') : [];
-        userStore.setUser(response.data.name, response.data.email, response.data.avatar, response.data.position, roles);
+        // roles đã là mảng, không cần phải split nữa
+        const roles = response.data.roles || []; // Nếu roles là null hoặc undefined, gán mảng rỗng
+
+        // Cập nhật thông tin người dùng vào store
+        userStore.setUser({
+            name: response.data.name,
+            email: response.data.email,
+            avatar: response.data.avatar,
+            position: response.data.position,
+            roles: roles
+        });
+
         return response.data;
     } catch (error) {
         console.error('Lỗi khi lấy thông tin user:', error);

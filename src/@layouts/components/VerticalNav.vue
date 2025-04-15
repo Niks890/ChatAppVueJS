@@ -2,6 +2,7 @@
 import { PerfectScrollbar } from 'vue3-perfect-scrollbar'
 import { useDisplay } from 'vuetify'
 import logo from '@images/logo.webp';
+import { Icon } from '@iconify/vue';
 
 const props = defineProps({
   tag: {
@@ -56,7 +57,7 @@ const handleNavScroll = evt => {
 
 
           <h3 class="leading-normal">
-            T-DrinkShop
+            <Icon icon="bx:chat" /> ChatApp
           </h3>
         </RouterLink>
       </slot>
