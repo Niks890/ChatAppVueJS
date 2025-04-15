@@ -24,7 +24,7 @@ export const useUserStore = defineStore('user', {
             this.email = '';
             this.avatar = '';
             this.position = '';
-            this.roles = [];  // Xóa hết các quyền người dùng
+            this.roles = []; 
         },
 
         // Hàm kiểm tra quyền người dùng (ví dụ: kiểm tra nếu người dùng có vai trò "admin")

@@ -78,9 +78,8 @@ import logo from '@images/logo.webp';
 import { message } from 'ant-design-vue';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../../configs/axios.js';
-import { Icon } from '@iconify/vue';
 import AuthProvider from '../../components/admin/layout/authProvider.vue';
+import api from '../../configs/axios.js';
 
 // Import VeeValidate và Yup
 import { useField, useForm } from 'vee-validate';

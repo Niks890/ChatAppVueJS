@@ -1,17 +1,3 @@
-<script setup>
-import AuthProvider from '../../components/admin/layout/authProvider.vue';
-import logo from '@images/logo.webp';
-
-const form = ref({
-    username: '',
-    email: '',
-    password: '',
-    privacyPolicies: false,
-})
-
-const isPasswordVisible = ref(false)
-</script>
-
 <template>
     <div class="auth-wrapper d-flex align-center justify-center pa-4">
         <VCard class="auth-card pa-4 pt-7" max-width="448">
@@ -26,40 +12,44 @@ const isPasswordVisible = ref(false)
                     ChatApp
                 </VCardTitle>
             </VCardItem>
-
-            <VCardText class="pt-2">
-                <h5 class="text-h5 mb-1">
-                    Đăng ký tài khoản ngay 🚀
-                </h5>
-            </VCardText>
+            <VCardText v-if="errorMessage" class="text-danger text-center">{{ errorMessage }}</VCardText>
 
             <VCardText>
-                <VForm @submit.prevent="$router.push('/')">
+                <VForm @submit.prevent="handleRegister">
                     <VRow>
                         <!-- Username -->
                         <VCol cols="12">
-                            <VTextField v-model="form.username" autofocus label="Username" placeholder="Johndoe" />
+                            <VTextField v-model="username" :error-messages="errors.username" autofocus label="Username"
+                                placeholder="Johndoe" />
                         </VCol>
                         <!-- email -->
                         <VCol cols="12">
-                            <VTextField v-model="form.email" label="Email" placeholder="johndoe@email.com"
-                                type="email" />
+                            <VTextField v-model="email" :error-messages="errors.email" label="Email"
+                                placeholder="johndoe@email.com" type="email" />
                         </VCol>
 
                         <!-- password -->
                         <VCol cols="12">
-                            <VTextField v-model="form.password" label="Password" placeholder="············"
+                            <VTextField v-model="password" label="Password" placeholder="············"
                                 :type="isPasswordVisible ? 'text' : 'password'"
                                 :append-inner-icon="isPasswordVisible ? 'bx-hide' : 'bx-show'"
-                                @click:append-inner="isPasswordVisible = !isPasswordVisible" />
+                                @click:append-inner="isPasswordVisible = !isPasswordVisible"
+                                :error-messages="errors.password" />
+                        </VCol>
+
+                        <VCol cols="12">
+                            <VTextField v-model="password_confirm" label="Password Confirm" placeholder="············"
+                                :type="isPasswordVisibleConfirm ? 'text' : 'password'"
+                                :append-inner-icon="isPasswordVisibleConfirm ? 'bx-hide' : 'bx-show'"
+                                @click:append-inner="isPasswordVisibleConfirm = !isPasswordVisibleConfirm"
+                                :error-messages="errors.password_confirm" />
                             <div class="d-flex align-center mt-1 mb-4">
-                                <VCheckbox id="privacy-policy" v-model="form.privacyPolicies" inline />
+                                <VCheckbox id="privacy-policy" v-model="privacyPolicies" inline />
                                 <VLabel for="privacy-policy" style="opacity: 1;">
-                                    <span class="me-1">I agree to</span>
-                                    <a href="javascript:void(0)" class="text-primary">privacy policy & terms</a>
+                                    <span class="me-1">Tôi đồng ý với</span>
+                                    <a href="javascript:void(0)" class="text-primary">chính sách bảo mật</a>
                                 </VLabel>
                             </div>
-
                             <VBtn block type="submit">
                                 Đăng ký ngay
                             </VBtn>
@@ -89,3 +79,73 @@ const isPasswordVisible = ref(false)
         </VCard>
     </div>
 </template>
+
+<script setup>
+import logo from '@images/logo.webp';
+import { message } from 'ant-design-vue';
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import AuthProvider from '../../components/admin/layout/authProvider.vue';
+import api from '../../configs/axios.js';
+
+import { useField, useForm } from 'vee-validate';
+import * as yup from 'yup';
+
+const router = useRouter();
+const { value: privacyPolicies } = useField('privacyPolicies');
+const isPasswordVisible = ref(false);
+const isPasswordVisibleConfirm = ref(false);
+const errorMessage = ref('');
+
+const schema = yup.object({
+    email: yup.string().required('Email không được bỏ trống').email('Email không hợp lệ'),
+    username: yup.string().required('Username không được bỏ trống').min(6, 'Username phải có ít nhất 6 ký tự'),
+    password: yup.string().required('Mật khẩu không được bỏ trống').min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+    password_confirm: yup.string().oneOf([yup.ref('password')], 'Mật khẩu xác nhận không khớp').required('Vui lòng xác nhận mật khẩu'),
+    privacyPolicies: yup.boolean().oneOf([true], 'Bạn cần đồng ý với chính sách bảo mật'),
+});
+const { handleSubmit, errors } = useForm({
+    validationSchema: schema,
+});
+const { value: username } = useField('username');
+const { value: email } = useField('email');
+const { value: password } = useField('password');
+const { value: password_confirm } = useField('password_confirm');
+
+const handleRegister = handleSubmit(async (values) => {
+    try {
+        const response = await api.post('/auth/register', {
+            email: values.email,
+            name: values.username,
+            password: values.password,
+            password_confirmation: values.password_confirm,
+        }, { withCredentials: true });
+
+        message.success({
+            content: `Đăng ký tài khoản thành công!`,
+            duration: 3,
+        });
+
+        router.push({ name: 'verify_account' });
+        // router.push({ name: 'verify_account', query: { email: values.email } });
+
+    } catch (error) {
+        if (error.response?.status === 401) {
+            message.error({
+                content: `Email hoặc mật khẩu không đúng!`,
+                duration: 3,
+            });
+        } else if (error.response?.data?.errors) {
+            const errorData = error.response.data.errors;
+            errorMessage.value = Object.values(errorData).flat().join(', ');
+        } else {
+            message.error({
+                content: `Đăng ký thất bại! Vui lòng thử lại.`,
+                duration: 3,
+            });
+        }
+        console.error('Lỗi đăng ký:', error.response?.data);
+    }
+});
+
+</script>
