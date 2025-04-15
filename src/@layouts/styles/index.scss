@@ -1,0 +1,14 @@
+@use "_global";
+@use "vue3-perfect-scrollbar/dist/vue3-perfect-scrollbar.min.css";
+@use "_classes";
+
+@media (-ms-high-contrast: none), (-ms-high-contrast: active) {
+    * {
+      -ms-high-contrast-adjust: none !important;
+    }
+  }
+  
+
+
+  
+  
