@@ -26,8 +26,6 @@
 </template>
 
 <script setup>
-import api from '@/configs/axios'
-import { message } from 'ant-design-vue'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 

@@ -126,8 +126,7 @@ const handleRegister = handleSubmit(async (values) => {
             duration: 3,
         });
 
-        router.push({ name: 'verify_account' });
-        // router.push({ name: 'verify_account', query: { email: values.email } });
+        router.push({ name: 'vertify_account', query: { email: values.email } });
 
     } catch (error) {
         if (error.response?.status === 401) {

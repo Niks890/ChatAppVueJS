@@ -12,10 +12,16 @@ const adminRoutes = [
         meta: { title: 'Register' },
     },
     {
-        path: '/verify-account',
-        name: 'verify_account',
-        component: () => import('../views/admin/auth/vetify_account.vue'),
-        meta: { title: 'verify_account' }
+        path: '/vertify-account',
+        name: 'vertify_account',
+        component: () => import('../views/admin/auth/vertify_account.vue'),
+        meta: { title: 'vertify_account' }
+    },
+    {
+        path: '/vertify-success',
+        name: 'vertify_success',
+        component: () => import('../views/admin/auth/vertify_success.vue'),
+        meta: { title: 'vertify_success' }
     },
     {
         path: '/admin',

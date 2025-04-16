@@ -2,8 +2,11 @@ import { message } from 'ant-design-vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import api from '../configs/axios.js';
 import { useUserStore } from '../stores/userStore';
+import { useVerifyStore } from '../stores/vertifyRegister';
 import adminRoutes from './admin.js';
 import clientRoutes from './client.js';
+
+
 
 const router = createRouter({
   history: createWebHistory(),
@@ -12,6 +15,7 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore();
+  const useVerify = useVerifyStore();
 
   // Nếu route cần auth mà chưa có role => gọi /me để xác thực
   if (to.meta.requiresAuth && (!userStore.roles || userStore.roles.length === 0)) {
@@ -38,6 +42,7 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
+
   // Nếu route yêu cầu quyền cụ thể (role)
   if (to.meta.role) {
     const allowedRoles = to.meta.role.split(','); // Chuyển string thành mảng nếu cần
@@ -53,6 +58,14 @@ router.beforeEach(async (to, from, next) => {
       return next('/403');
     }
   }
+
+  if (to.name === 'vertify_success') {
+    const isVerifiedFromQuery = to.query.verified === '200';
+    if (!useVerify.justVerified && !isVerifiedFromQuery) {
+      return next({ name: 'login' });
+    }
+  }
+
 
   // Cập nhật title trang nếu có
   if (to.meta.title) {
