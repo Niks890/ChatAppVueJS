@@ -1,14 +1,14 @@
 <script setup>
-import { ref } from 'vue'
 import VerticalNavSectionTitle from '@/@layouts/components/VerticalNavSectionTitle.vue'
 import VerticalNavLayout from '@layouts/components/VerticalNavLayout.vue'
 import VerticalNavLink from '@layouts/components/VerticalNavLink.vue'
+import { ref } from 'vue'
 import { useTheme } from 'vuetify'
 
-import Footer from '../ui/Footer.vue'
-import NavbarThemeSwitcher from '../ui/DarkModeAndLightMode.vue'
-import UserProfile from '../ui/UserProfile.vue'
 import { useUserStore } from '@/stores/userStore'
+import NavbarThemeSwitcher from '../ui/DarkModeAndLightMode.vue'
+import Footer from '../ui/Footer.vue'
+import UserProfile from '../ui/UserProfile.vue'
 
 const userStore = useUserStore()
 const vuetifyTheme = useTheme()
@@ -21,12 +21,11 @@ const hasRole = role => userStore.roles?.some(userRole => userRole.name === role
 const menuItems = [
   { type: 'link', title: 'Trang Chủ', icon: 'bx-home', to: '/admin/dashboard', roles: [] },
   { type: 'section', heading: 'Quản lý Chat', roles: ['admin'] },
-  { type: 'link', title: 'Tin nhắn', icon: 'bx-chat', to: '/admin/messages', roles: ['admin'] },
+  { type: 'link', title: 'Tin nhắn', icon: 'bx-chat', to: '/admin/chats-private', roles: ['admin'] },
   { type: 'section', heading: 'Quản lý Nhóm', roles: ['admin'] },
-  { type: 'link', title: 'Nhóm Chat', icon: 'bx-group', to: '/admin/groups', roles: ['admin'] },
-  { type: 'section', heading: 'Quản lý Người Dùng', roles: ['admin'] },
-  { type: 'link', title: 'Danh sách người dùng', icon: 'bx-user', to: '/admin/users', roles: ['admin'] },
-
+  { type: 'link', title: 'Nhóm Chat', icon: 'bx-group', to: '/admin/groups_chat', roles: ['admin'] },
+  { type: 'section', heading: 'Khác', roles: ['admin'] },
+  { type: 'link', title: 'Quản lý tài khoản', icon: 'bx-group', to: '/admin/account-settings', roles: ['admin'] },
 ]
 </script>
 

@@ -11,6 +11,8 @@ const adminRoutes = [
         component: () => import('../views/admin/register.vue'),
         meta: { title: 'Register' },
     },
+
+    // còn lỗi routes
     {
         path: '/vertify-account',
         name: 'vertify_account',
@@ -23,6 +25,7 @@ const adminRoutes = [
         component: () => import('../views/admin/auth/vertify_success.vue'),
         meta: { title: 'vertify_success' }
     },
+
     {
         path: '/admin',
         component: () => import('../layouts/admin/admin.vue'),
@@ -39,6 +42,12 @@ const adminRoutes = [
                 component: () => import('../views/admin/account-settings.vue'),
                 meta: { title: 'Settings', requiresAuth: true, role: 'admin' },
             },
+            {
+                path: 'chats-private',
+                name: 'admin-chats-private',
+                component: () => import('../components/admin/layout/chatLayout.vue'),
+                meta: { title: 'Chats', requiresAuth: true, role: 'admin' },
+            }
         ],
     },
     {

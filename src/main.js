@@ -16,6 +16,7 @@ import {
 import 'ant-design-vue/dist/reset.css'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
+import './websocket/echo.js'
 // font
 loadFonts()
 
