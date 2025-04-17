@@ -91,6 +91,7 @@ const showUserList = ref(false);
 const inputRef = ref(null);
 const chatBoxRef = ref(null);
 const selectedUserName = ref('');
+const selectedGroupId = ref(null);
 
 // Scroll xuống cuối khung chat
 const scrollToBottom = () => {
@@ -104,11 +105,17 @@ watch(messages, async () => {
     scrollToBottom();
 });
 
-// Gửi tin nhắn
+
+
 const sendMessage = async () => {
     if (!message.value.trim()) return;
+    console.log(selectedGroupId.value, userId.value, message.value);
 
-    const response = await api.post('/send-message', { message: message.value });
+    const response = await api.post('/send-message', {
+        message: message.value,
+        group_id: selectedGroupId.value,
+        user_id: userId.value
+    });
 
     if (response.data.success) {
         messages.value.push({ content: message.value, type: 'sent' });
@@ -116,6 +123,7 @@ const sendMessage = async () => {
         nextTick(scrollToBottom);
     }
 };
+
 
 // Fetch danh sách user
 const fetchUsers = async () => {
@@ -148,7 +156,8 @@ const fetchMessages = async (groupId, otherUserId) => {
     }
 };
 
-// Chọn user để chat
+
+
 const selectUser = async (groupId, otherUserId, name) => {
     try {
         const res = await api.post('/group-id', {
@@ -156,6 +165,8 @@ const selectUser = async (groupId, otherUserId, name) => {
             user_id: userId.value
         });
 
+        selectedGroupId.value = res.data.data; // Lưu group_id
+        console.log('Group ID:', res.data.data);
         await fetchMessages(res.data.data, otherUserId);
         selectedUserName.value = name;
         showUserList.value = isMobile.value ? false : true;
@@ -163,6 +174,7 @@ const selectUser = async (groupId, otherUserId, name) => {
         console.error('Lỗi khi chọn người dùng:', error);
     }
 };
+
 
 // Kiểm tra thiết bị mobile
 const checkMobile = () => {
