@@ -56,4 +56,10 @@ export default defineConfig({
       './src/**/*.vue',
     ],
   },
+
+  server: {
+    host: true,
+    port: 5173,
+    allowedHosts: true
+  },
 })

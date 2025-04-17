@@ -6,21 +6,21 @@ import api from '../configs/axios.js';
 const userStore = useUserStore();
 
 // Thêm biến computed để export
+export const userId = computed(() => userStore.id);
 export const userName = computed(() => userStore.name);
 export const userRole = computed(() => userStore.roles);
 export const userEmail = computed(() => userStore.email);
 export const userAvatar = computed(() => userStore.avatar);
-export const userPosition = computed(() => userStore.position);
 
 export async function getInfoUser() {
     // Nếu roles đã có trong store, trả lại thông tin từ store
     if (userStore.roles.length) {
         return {
+            id: userStore.id,
             name: userStore.name,
             roles: userStore.roles,
             email: userStore.email,
             avatar: userStore.avatar,
-            position: userStore.position
         };
     }
 
@@ -29,13 +29,13 @@ export async function getInfoUser() {
         const response = await api.post('/me');
         // roles đã là mảng, không cần phải split nữa
         const roles = response.data.roles || []; // Nếu roles là null hoặc undefined, gán mảng rỗng
-
+        console.log(response.data);
         // Cập nhật thông tin người dùng vào store
         userStore.setUser({
+            id: response.data.id,
             name: response.data.name,
             email: response.data.email,
             avatar: response.data.avatar,
-            position: response.data.position,
             roles: roles
         });
 

@@ -15,18 +15,16 @@
                     <VTextField v-model="search" density="comfortable" variant="outlined" placeholder="Tìm kiếm..."
                         prepend-inner-icon="mdi-magnify" class="mb-4 search-box" />
 
-                    <VList density="comfortable" nav class="friend-list">
-                        <VListItem v-for="(item, index) in 10" :key="index" rounded class="mb-2 friend-item"
-                            @click="showUserList = isMobile ? false : true">
-                            <template #prepend>
-                                <VAvatar color="primary" size="40">
-                                    <span class="text-white">{{ item }}</span>
-                                </VAvatar>
-                            </template>
-                            <VListItemTitle class="font-weight-medium">Người dùng {{ item }}</VListItemTitle>
-                            <VListItemSubtitle v-show="!isMobile">Tin nhắn gần đây...</VListItemSubtitle>
-                        </VListItem>
-                    </VList>
+                    <VListItem v-for="(item, index) in users" :key="item.id" rounded class="mb-2 friend-item"
+                        @click="selectUser(item.group_id, item.id, item.name)">
+                        <template #prepend>
+                            <VAvatar color="primary" size="40">
+                                <span class="text-white">{{ item.name.charAt(0) }}</span>
+                            </VAvatar>
+                        </template>
+                        <VListItemTitle class="font-weight-medium">{{ item.name }}</VListItemTitle>
+                        <VListItemSubtitle v-show="!isMobile">Tin nhắn gần đây...</VListItemSubtitle>
+                    </VListItem>
                 </VCol>
             </v-slide-x-transition>
 
@@ -39,10 +37,10 @@
                             <VIcon icon="mdi-menu" />
                         </VBtn>
                         <VAvatar color="primary" size="40">
-                            <span class="text-white">A</span>
+                            <span class="text-white">{{ selectedUserName.charAt(0) }}</span>
                         </VAvatar>
                         <div>
-                            <h3 class="text-subtitle-1 font-weight-medium mb-0">Tên người dùng / Nhóm</h3>
+                            <h3 class="text-subtitle-1 font-weight-medium mb-0">{{ selectedUserName }}</h3>
                             <p class="text-caption text-grey">Đang hoạt động</p>
                         </div>
                     </div>
@@ -50,26 +48,26 @@
                         <VIcon icon="mdi-dots-vertical" />
                     </VBtn>
                 </div>
-                <!-- Tin nhắn gửi -->
-                <div v-for="(msg, index) in messages" :key="index" class="d-flex">
-                    <VChip :class="{ 'sent': msg.type === 'sent', 'received': msg.type === 'received' }"
-                        :color="msg.type === 'sent' ? 'primary' : 'grey'" class="message-chip">
-                        {{ msg.content }}
-                    </VChip>
+
+                <!-- Tin nhắn -->
+                <div class="chat-messages" ref="chatBoxRef">
+                    <div v-for="(msg, index) in messages" :key="index" class="message-wrapper" :class="msg.type">
+                        <span v-if="msg.type === 'received'" class="sender-name">{{ msg.senderName }}</span>
+                        <div class="message-bubble">{{ msg.content }}</div>
+                    </div>
                 </div>
 
-
-                <!-- Input chat -->
+                <!-- Input -->
                 <div class="chat-input-bar">
                     <VTextField ref="inputRef" v-model="message" density="comfortable" variant="outlined"
                         placeholder="Nhập tin nhắn..." class="flex-grow-1" hide-details style="border-radius: 30px;" />
                     <VBtn icon @click="sendMessage" color="primary" class="rounded-full">
                         <VIcon icon="mdi-send" />
                     </VBtn>
-                    <VBtn icon @click="" class="rounded-full" color="grey">
+                    <VBtn icon class="rounded-full" color="grey">
                         <VIcon icon="mdi-paperclip" />
                     </VBtn>
-                    <VBtn icon @click="" class="rounded-full" color="grey">
+                    <VBtn icon class="rounded-full" color="grey">
                         <VIcon icon="mdi-image" />
                     </VBtn>
                 </div>
@@ -79,171 +77,205 @@
 </template>
 
 
-
 <script setup>
-import { onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { userId } from '../../../composables/userAuth.js';
 import api from '../../../configs/axios.js';
 
-// Reactive variables
+const users = ref([]);
 const search = ref('');
 const message = ref('');
-const showUserList = ref(false);
+const messages = ref([]);
 const isMobile = ref(false);
+const showUserList = ref(false);
 const inputRef = ref(null);
-const messages = ref([]); // Store messages here
+const chatBoxRef = ref(null);
+const selectedUserName = ref('');
 
-// Check if device is mobile
-onMounted(() => {
-    const checkMobile = () => {
-        isMobile.value = window.innerWidth < 768;
-        if (!isMobile.value) showUserList.value = true;
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
+// Scroll xuống cuối khung chat
+const scrollToBottom = () => {
+    const el = chatBoxRef.value;
+    if (el) el.scrollTop = el.scrollHeight;
+};
 
-    // Echo listener for real-time chat updates
-    window.Echo.channel('chat')
-        .listen('.message.sent', (e) => {
-            console.log('Tin nhắn realtime nhận được:', e.message);
-            // Add new message to chat
-            messages.value.push({ content: e.message, type: 'received' });
-        });
+// Watch khi có tin nhắn mới thì scroll xuống
+watch(messages, async () => {
+    await nextTick();
+    scrollToBottom();
 });
 
-// Send message to backend and add it to the UI
+// Gửi tin nhắn
 const sendMessage = async () => {
     if (!message.value.trim()) return;
 
-    // Send message to backend Laravel
-    await api.post('/send-message', {
-        message: message.value,
-    });
+    const response = await api.post('/send-message', { message: message.value });
 
-    // Show the message in the UI
-    messages.value.push({ content: message.value, type: 'sent' });
-    message.value = '';
-    inputRef.value?.focus();
+    if (response.data.success) {
+        messages.value.push({ content: message.value, type: 'sent' });
+        message.value = '';
+        nextTick(scrollToBottom);
+    }
 };
+
+// Fetch danh sách user
+const fetchUsers = async () => {
+    try {
+        const res = await api.get('/users');
+        users.value = res.data.data.filter(user => user.id !== userId.value);
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách user:', error);
+    }
+};
+
+// Fetch lịch sử tin nhắn
+const fetchMessages = async (groupId, otherUserId) => {
+    try {
+        const res = await api.post('/messages', {
+            group_id: groupId,
+            user_id: userId.value,
+            other_user_id: otherUserId
+        });
+
+        messages.value = res.data.data.map(msg => ({
+            content: msg.message,
+            type: msg.sender_id === userId.value ? 'sent' : 'received',
+            senderName: msg.sender.name,
+            file: msg.file_path,
+            createdAt: msg.created_at,
+        }));
+    } catch (error) {
+        console.error('Lỗi khi lấy tin nhắn:', error);
+    }
+};
+
+// Chọn user để chat
+const selectUser = async (groupId, otherUserId, name) => {
+    try {
+        const res = await api.post('/group-id', {
+            other_user_id: otherUserId,
+            user_id: userId.value
+        });
+
+        await fetchMessages(res.data.data, otherUserId);
+        selectedUserName.value = name;
+        showUserList.value = isMobile.value ? false : true;
+    } catch (error) {
+        console.error('Lỗi khi chọn người dùng:', error);
+    }
+};
+
+// Kiểm tra thiết bị mobile
+const checkMobile = () => {
+    isMobile.value = window.innerWidth < 768;
+    if (!isMobile.value) showUserList.value = true;
+};
+
+onMounted(() => {
+    fetchUsers();
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    window.Echo.channel('chat')
+        .listen('.message.sent', (e) => {
+            // const exists = messages.value.some(
+            //     msg => msg.content === e.message && msg.createdAt === e.created_at
+            // );
+            // if (!exists) {
+            // }
+            messages.value.push({
+                content: e.message,
+                type: 'received',
+                senderName: e.senderName,
+                createdAt: e.created_at
+            });
+            nextTick(scrollToBottom);
+        });
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', checkMobile);
+});
 </script>
 
-
 <style scoped>
-.chat-input-bar {
+.chat-area {
+    height: 75vh;
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    position: sticky;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 12px 16px;
-    background-color: #fff;
-    z-index: 10;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    flex-direction: column;
 }
 
 .chat-header {
-    border-bottom: 1px solid #ddd;
-    background-color: #fff;
+    height: 64px;
     padding: 12px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    border-bottom: 1px solid #eee;
+    background-color: #fff;
+    flex-shrink: 0;
 }
 
 .chat-messages {
-    flex-grow: 1;
+    flex: 1;
     overflow-y: auto;
     padding: 16px;
-    padding-bottom: 80px;
-    max-height: calc(100vh - 220px);
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 12px;
+    background-color: #fafafa;
+    scroll-behavior: smooth;
 }
 
-.message-chip {
-    padding: 8px 16px;
-    max-width: 80%;
-    word-break: break-word;
-}
-
-.message-chip.sent {
-    background-color: #3f51b5;
-    color: white;
-    align-self: flex-end;
-}
-
-.message-chip.received {
-    background-color: #e0e0e0;
-    color: black;
-    align-self: flex-start;
-}
-
-.search-box {
-    border-radius: 15px;
+.chat-input-bar {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid #eee;
     background-color: #fff;
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
 }
 
-.friend-list {
-    max-height: calc(100vh - 160px);
-    overflow-y: auto;
+.message-wrapper {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
 }
 
-.friend-item {
-    transition: background-color 0.3s;
+.message-bubble {
+    display: inline-block;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.4;
+    max-width: 80%;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.friend-item:hover {
-    background-color: #e8eaf6;
+.sent {
+    align-items: flex-end;
 }
 
-@media (max-width: 768px) {
-    .user-list {
-        position: absolute;
-        z-index: 100;
-        width: 100%;
-        height: 100vh;
-        background-color: white;
-        top: 0;
-        left: 0;
-    }
+.sent .message-bubble {
+    background-color: #DCF8C6;
+    color: #000;
+}
 
-    .chat-header {
-        padding: 10px 12px;
-    }
+.received {
+    align-items: flex-start;
+}
 
-    .chat-messages {
-        padding: 12px;
-        gap: 0.5rem;
-    }
+.received .message-bubble {
+    background-color: #f1f1f1;
+    color: #000;
+}
 
-    .chat-input-bar {
-        padding: 8px 12px;
-        gap: 0.3rem;
-    }
-
-    .v-text-field input {
-        font-size: 14px;
-    }
-
-    .v-btn .v-icon {
-        font-size: 20px;
-    }
-
-    .v-avatar {
-        width: 32px !important;
-        height: 32px !important;
-        font-size: 14px;
-    }
-
-    .v-list-item__title {
-        font-size: 0.95rem;
-    }
-
-    .v-list-item__subtitle {
-        font-size: 0.75rem;
-    }
+.sender-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 4px;
 }
 </style>

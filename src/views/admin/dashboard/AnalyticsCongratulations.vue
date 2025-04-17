@@ -1,9 +1,9 @@
 <script setup>
 import illustrationJohnDark from '@images/cards/illustration-john-dark.png'
 import illustrationJohnLight from '@images/cards/illustration-john-light.png'
+import { computed } from 'vue'
 import { useTheme } from 'vuetify'
 import { userName } from '../../../composables/userAuth.js'
-import { computed } from 'vue'
 const { global } = useTheme()
 
 // Đổi ảnh theo theme
@@ -46,6 +46,9 @@ const items = [
             <VCardTitle class="text-md-h5 text-primary">
               Xin chào, {{ userName }}!
             </VCardTitle>
+            <!-- <VCardTitle class="text-md-h5 text-primary">
+              Xin chào, {{ userId }}!
+            </VCardTitle> -->
           </VCardItem>
           <VCardText>
             <span>Chúc bạn có một ngày tốt lành!</span><br>

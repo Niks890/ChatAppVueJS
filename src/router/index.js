@@ -25,6 +25,7 @@ router.beforeEach(async (to, from, next) => {
 
       // Cập nhật lại thông tin người dùng vào store
       userStore.setUser({
+        id: response.data.id,
         name: response.data.name,
         email: response.data.email,
         avatar: response.data.avatar,
