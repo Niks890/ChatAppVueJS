@@ -41,7 +41,8 @@
                         </VAvatar>
                         <div>
                             <h3 class="text-subtitle-1 font-weight-medium mb-0">{{ selectedUserName }}</h3>
-                            <p class="text-caption text-grey">Đang hoạt động</p>
+                            <!-- <p class="text-caption text-grey">Đang hoạt động</p> -->
+                            <p class="text-caption text-grey">{{ getStatus(selectedUserId) }}</p>
                         </div>
                     </div>
                     <VBtn icon variant="text" style="color: #7b7b7b;">
@@ -49,13 +50,24 @@
                     </VBtn>
                 </div>
 
-                <!-- Tin nhắn -->
                 <div class="chat-messages" ref="chatBoxRef">
+                    <div v-if="!selectedUserName" class="empty-chat-message">
+                        <p class="empty-chat-text">Chọn người nhận để bắt đầu trò chuyện</p>
+                    </div>
                     <div v-for="(msg, index) in messages" :key="index" class="message-wrapper" :class="msg.type">
                         <span v-if="msg.type === 'received'" class="sender-name">{{ msg.senderName }}</span>
-                        <div class="message-bubble">{{ msg.content }}</div>
+                        <div class="message-bubble">
+                            {{ msg.content }}
+                            <div class="message-time">
+                                {{ formatTime(msg.createdAt) }}
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <VBtn v-show="showScrollToBottom" class="scroll-to-bottom" icon color="primary" @click="scrollToBottom">
+                    <VIcon icon="mdi-arrow-down" />
+                </VBtn>
 
                 <!-- Input -->
                 <div class="chat-input-bar">
@@ -92,11 +104,34 @@ const inputRef = ref(null);
 const chatBoxRef = ref(null);
 const selectedUserName = ref('');
 const selectedGroupId = ref(null);
+const showScrollToBottom = ref(false);
+const selectedUserId = ref(null);
+
+const getStatus = (userId) => {
+    const user = users.value.find(u => u.id === userId);
+    return user ? (user.status === 'offline' ? 'Không hoạt động' : 'Đang hoạt động') : 'Không xác định';
+};
+
+const formatTime = (datetime) => {
+    return new Date(datetime).toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Ho_Chi_Minh'
+    });
+};
 
 // Scroll xuống cuối khung chat
 const scrollToBottom = () => {
     const el = chatBoxRef.value;
     if (el) el.scrollTop = el.scrollHeight;
+};
+
+const handleScroll = () => {
+    const el = chatBoxRef.value;
+    if (!el) return;
+    // Nếu cách bottom > 100px thì hiện nút
+    showScrollToBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight > 100;
 };
 
 // Watch khi có tin nhắn mới thì scroll xuống
@@ -109,7 +144,6 @@ watch(messages, async () => {
 
 const sendMessage = async () => {
     if (!message.value.trim()) return;
-    console.log(selectedGroupId.value, userId.value, message.value);
 
     const response = await api.post('/send-message', {
         message: message.value,
@@ -117,23 +151,48 @@ const sendMessage = async () => {
         user_id: userId.value
     });
 
+    // console.log(response.data);
+
     if (response.data.success) {
-        messages.value.push({ content: message.value, type: 'sent' });
-        message.value = '';
-        nextTick(scrollToBottom);
+        // Thêm tin nhắn vào messages từ response của API
+        messages.value.push({
+            content: response.data.message.content,
+            type: 'sent',
+            senderName: response.data.message.senderName,
+            createdAt: response.data.message.createdAt
+        });
+        message.value = '';  // Xóa nội dung message input sau khi gửi
+        nextTick(scrollToBottom);  // Cuộn xuống cuối chat
     }
 };
 
+
+
+// Fetch danh sách user
+// const fetchUsers = async () => {
+//     try {
+//         const res = await api.get('/users');
+//         // console.log(res.data);
+//         users.value = res.data.data.filter(user => user.id !== userId.value);
+//     } catch (error) {
+//         console.error('Lỗi khi lấy danh sách user:', error);
+//     }
+// };
 
 // Fetch danh sách user
 const fetchUsers = async () => {
     try {
         const res = await api.get('/users');
-        users.value = res.data.data.filter(user => user.id !== userId.value);
+        // Lưu thông tin người dùng và thêm trạng thái vào mỗi user
+        users.value = res.data.data.filter(user => user.id !== userId.value).map(user => ({
+            ...user,
+            status: user.status // Đảm bảo có trường trạng thái cho mỗi người dùng
+        }));
     } catch (error) {
         console.error('Lỗi khi lấy danh sách user:', error);
     }
 };
+
 
 // Fetch lịch sử tin nhắn
 const fetchMessages = async (groupId, otherUserId) => {
@@ -143,6 +202,7 @@ const fetchMessages = async (groupId, otherUserId) => {
             user_id: userId.value,
             other_user_id: otherUserId
         });
+        // console.log(res.data);
 
         messages.value = res.data.data.map(msg => ({
             content: msg.message,
@@ -166,7 +226,9 @@ const selectUser = async (groupId, otherUserId, name) => {
         });
 
         selectedGroupId.value = res.data.data; // Lưu group_id
-        console.log('Group ID:', res.data.data);
+        // console.log('Group ID:', res.data.data);
+        selectedUserId.value = otherUserId;
+        // console.log('Selected User ID:', otherUserId);
         await fetchMessages(res.data.data, otherUserId);
         selectedUserName.value = name;
         showUserList.value = isMobile.value ? false : true;
@@ -186,34 +248,57 @@ onMounted(() => {
     fetchUsers();
     checkMobile();
     window.addEventListener('resize', checkMobile);
-
+    chatBoxRef.value?.addEventListener('scroll', handleScroll);
     window.Echo.channel('chat')
         .listen('.message.sent', (e) => {
-            // const exists = messages.value.some(
-            //     msg => msg.content === e.message && msg.createdAt === e.created_at
-            // );
-            // if (!exists) {
-            // }
-            messages.value.push({
-                content: e.message,
-                type: 'received',
-                senderName: e.senderName,
-                createdAt: e.created_at
-            });
-            nextTick(scrollToBottom);
+            // Nếu tin nhắn đến từ người khác mới push
+            if (e.sender_id !== userId.value) {
+                messages.value.push({
+                    content: e.message,
+                    type: 'received',
+                    senderName: e.senderName,
+                    createdAt: e.created_at
+                });
+                nextTick(scrollToBottom);
+            }
         });
+
 });
 
 onBeforeUnmount(() => {
     window.removeEventListener('resize', checkMobile);
+    chatBoxRef.value?.removeEventListener('scroll', handleScroll);
 });
 </script>
 
 <style scoped>
+.empty-chat-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #aaa;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.empty-chat-text {
+    text-align: center;
+    margin: 0;
+}
+
+.message-time {
+    font-size: 11px;
+    color: #999;
+    margin-top: 4px;
+    text-align: right;
+}
+
 .chat-area {
     height: 75vh;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .chat-header {
@@ -289,5 +374,13 @@ onBeforeUnmount(() => {
     font-weight: 500;
     color: #666;
     margin-bottom: 4px;
+}
+
+.scroll-to-bottom {
+    position: absolute;
+    bottom: 80px;
+    right: 24px;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 </style>
