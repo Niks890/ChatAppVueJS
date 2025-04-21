@@ -3,8 +3,10 @@
         <VRow no-gutters class="fill-height">
             <!-- Danh sách bạn bè -->
             <v-slide-x-transition>
+
                 <VCol v-show="!isMobile || showUserList" cols="12" md="3" class="pa-4 user-list"
                     style="border-right: 1px solid #ddd; background-color: #f9f9f9;">
+                    <h3 class="mb-4">Danh sách người dùng</h3>
                     <div class="d-flex justify-space-between align-center mb-4" v-if="isMobile">
                         <strong>Danh sách</strong>
                         <VBtn icon @click="showUserList = false" variant="text">
@@ -23,8 +25,11 @@
                             </VAvatar>
                         </template>
                         <VListItemTitle class="font-weight-medium">{{ item.name }}</VListItemTitle>
-                        <VListItemSubtitle v-show="!isMobile">{{ item.lastMessage || 'Chưa có tin nhắn' }}
+                        <VListItemSubtitle v-show="!isMobile" class="truncate-text" :title="item.lastMessage">
+                            {{ (item.lastMessage || 'Chưa có tin nhắn').slice(0, 30) }}<span
+                                v-if="(item.lastMessage || '').length > 30">...</span>
                         </VListItemSubtitle>
+
 
                     </VListItem>
                 </VCol>
@@ -114,7 +119,7 @@ const getStatus = (userId) => {
     const user = users.value.find(u => u.id === userId);
     if (user) {
         if (user.status === 'offline') {
-            return `Không hoạt động ${getOfflineDuration(user.last_seen)}`;
+            return `Truy cập ${getOfflineDuration(user.last_seen)}`;
         }
         return 'Đang hoạt động';
     }
@@ -124,7 +129,7 @@ const getStatus = (userId) => {
 
 const getOfflineDuration = (lastSeen) => {
     if (!lastSeen) {
-        return 'trong thời gian hiện tại'; // Trường hợp last_seen là null
+        return 'không được xác định'; // Trường hợp last_seen là null
     }
     const now = new Date();
     const lastSeenDate = new Date(lastSeen);
@@ -366,6 +371,15 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.truncate-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    /* hoặc bạn có thể đặt giới hạn cụ thể như 200px */
+    display: block;
+}
+
 .empty-chat-message {
     display: flex;
     justify-content: center;

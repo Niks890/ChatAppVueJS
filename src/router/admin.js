@@ -51,7 +51,7 @@ const adminRoutes = [
             {
                 path: 'chats-group',
                 name: 'admin-chats-group',
-                component: () => import('../components/admin/layout/chatLayout.vue'),
+                component: () => import('../components/admin/layout/chatGroupLayout.vue'),
                 meta: { title: 'Chats', requiresAuth: true, role: 'admin' },
             }
         ],

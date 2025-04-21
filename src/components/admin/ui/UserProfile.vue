@@ -1,7 +1,6 @@
 <script setup>
 import avatar1 from '@images/avatars/avatar-1.png';
 import { message, Modal } from 'ant-design-vue';
-import Cookies from 'js-cookie';
 import { useRouter } from 'vue-router';
 import api from '../../../configs/axios.js';
 import { useUserStore } from '../../../stores/userStore';
@@ -9,7 +8,7 @@ import { useUserStore } from '../../../stores/userStore';
 const router = useRouter();
 const userStore = useUserStore();
 
-import { getInfoUser, userName, userEmail } from '../../../composables/userAuth.js';
+import { getInfoUser, userEmail, userName } from '../../../composables/userAuth.js';
 getInfoUser();
 async function logout() {
   try {

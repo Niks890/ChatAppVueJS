@@ -23,7 +23,7 @@ const menuItems = [
   { type: 'section', heading: 'Quản lý Chat', roles: ['admin'] },
   { type: 'link', title: 'Tin nhắn', icon: 'bx-chat', to: '/admin/chats-private', roles: ['admin'] },
   { type: 'section', heading: 'Quản lý Nhóm', roles: ['admin'] },
-  { type: 'link', title: 'Nhóm Chat', icon: 'bx-group', to: '/admin/groups_chat', roles: ['admin'] },
+  { type: 'link', title: 'Nhóm Chat', icon: 'bx-group', to: '/admin/chats-group', roles: ['admin'] },
   { type: 'section', heading: 'Khác', roles: ['admin'] },
   { type: 'link', title: 'Quản lý tài khoản', icon: 'bx-group', to: '/admin/account-settings', roles: ['admin'] },
 ]
