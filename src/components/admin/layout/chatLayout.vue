@@ -23,7 +23,9 @@
                             </VAvatar>
                         </template>
                         <VListItemTitle class="font-weight-medium">{{ item.name }}</VListItemTitle>
-                        <VListItemSubtitle v-show="!isMobile">Tin nhắn gần đây...</VListItemSubtitle>
+                        <VListItemSubtitle v-show="!isMobile">{{ item.lastMessage || 'Chưa có tin nhắn' }}
+                        </VListItemSubtitle>
+
                     </VListItem>
                 </VCol>
             </v-slide-x-transition>
@@ -41,7 +43,6 @@
                         </VAvatar>
                         <div>
                             <h3 class="text-subtitle-1 font-weight-medium mb-0">{{ selectedUserName }}</h3>
-                            <!-- <p class="text-caption text-grey">Đang hoạt động</p> -->
                             <p class="text-caption text-grey">{{ getStatus(selectedUserId) }}</p>
                         </div>
                     </div>
@@ -59,7 +60,8 @@
                         <div class="message-bubble">
                             {{ msg.content }}
                             <div class="message-time">
-                                {{ formatTime(msg.createdAt) }}
+                                <span>{{ formatMessageDate(msg.createdAt) }}</span> -
+                                <span>{{ formatTime(msg.createdAt) }}</span>
                             </div>
                         </div>
                     </div>
@@ -106,11 +108,45 @@ const selectedUserName = ref('');
 const selectedGroupId = ref(null);
 const showScrollToBottom = ref(false);
 const selectedUserId = ref(null);
+let statusInterval = null;
 
 const getStatus = (userId) => {
     const user = users.value.find(u => u.id === userId);
-    return user ? (user.status === 'offline' ? 'Không hoạt động' : 'Đang hoạt động') : 'Không xác định';
+    if (user) {
+        if (user.status === 'offline') {
+            return `Không hoạt động ${getOfflineDuration(user.last_seen)}`;
+        }
+        return 'Đang hoạt động';
+    }
+    return 'Không xác định';
 };
+
+
+const getOfflineDuration = (lastSeen) => {
+    if (!lastSeen) {
+        return 'trong thời gian hiện tại'; // Trường hợp last_seen là null
+    }
+    const now = new Date();
+    const lastSeenDate = new Date(lastSeen);
+    const diffInMillis = now - lastSeenDate; // Sự khác biệt tính theo milliseconds
+
+    const seconds = Math.floor(diffInMillis / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) {
+        return `${days} ngày trước`;
+    }
+    if (hours > 0) {
+        return `${hours} giờ trước`;
+    }
+    if (minutes > 0) {
+        return `${minutes} phút trước`;
+    }
+    return `${seconds} giây trước`;
+};
+
 
 const formatTime = (datetime) => {
     return new Date(datetime).toLocaleTimeString('vi-VN', {
@@ -119,6 +155,24 @@ const formatTime = (datetime) => {
         hour12: false,
         timeZone: 'Asia/Ho_Chi_Minh'
     });
+};
+
+const formatMessageDate = (datetime) => {
+    const messageDate = new Date(datetime);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    // Kiểm tra nếu tin nhắn là hôm nay
+    if (messageDate.toDateString() === today.toDateString()) {
+        return "Hôm nay";
+    }
+    // Kiểm tra nếu tin nhắn là hôm qua
+    if (messageDate.toDateString() === yesterday.toDateString()) {
+        return "Hôm qua";
+    }
+    // Nếu không phải hôm nay hoặc hôm qua, trả về ngày trong định dạng dd/mm/yyyy
+    return messageDate.toLocaleDateString("vi-VN");
 };
 
 // Scroll xuống cuối khung chat
@@ -161,23 +215,13 @@ const sendMessage = async () => {
             senderName: response.data.message.senderName,
             createdAt: response.data.message.createdAt
         });
+        updateLastMessage(selectedGroupId.value, response.data.message.content);
         message.value = '';  // Xóa nội dung message input sau khi gửi
         nextTick(scrollToBottom);  // Cuộn xuống cuối chat
     }
 };
 
 
-
-// Fetch danh sách user
-// const fetchUsers = async () => {
-//     try {
-//         const res = await api.get('/users');
-//         // console.log(res.data);
-//         users.value = res.data.data.filter(user => user.id !== userId.value);
-//     } catch (error) {
-//         console.error('Lỗi khi lấy danh sách user:', error);
-//     }
-// };
 
 // Fetch danh sách user
 const fetchUsers = async () => {
@@ -188,6 +232,10 @@ const fetchUsers = async () => {
             ...user,
             status: user.status // Đảm bảo có trường trạng thái cho mỗi người dùng
         }));
+
+        // users.value.forEach(user => {
+        //     fetchMessages(user.group_id, user.id);
+        // });
     } catch (error) {
         console.error('Lỗi khi lấy danh sách user:', error);
     }
@@ -203,7 +251,14 @@ const fetchMessages = async (groupId, otherUserId) => {
             other_user_id: otherUserId
         });
         // console.log(res.data);
-
+        const lastMessage = res.data.data.length > 0 ? res.data.data[res.data.data.length - 1] : null;
+        if (lastMessage) {
+            const user = users.value.find(u => u.id === otherUserId);
+            if (user) {
+                user.lastMessage = lastMessage.message;  // Gán tin nhắn cuối cùng cho user
+                updateLastMessage(groupId, lastMessage.message);  // Cập nhật ngay tin nhắn cuối cùng
+            }
+        }
         messages.value = res.data.data.map(msg => ({
             content: msg.message,
             type: msg.sender_id === userId.value ? 'sent' : 'received',
@@ -230,8 +285,11 @@ const selectUser = async (groupId, otherUserId, name) => {
         selectedUserId.value = otherUserId;
         // console.log('Selected User ID:', otherUserId);
         await fetchMessages(res.data.data, otherUserId);
+
         selectedUserName.value = name;
         showUserList.value = isMobile.value ? false : true;
+        // await nextTick();
+        // scrollToBottom();
     } catch (error) {
         console.error('Lỗi khi chọn người dùng:', error);
     }
@@ -244,11 +302,27 @@ const checkMobile = () => {
     if (!isMobile.value) showUserList.value = true;
 };
 
+
+const updateLastMessage = (groupId, message) => {
+    // Update last message in the users array
+    const user = users.value.find(u => u.group_id === groupId);
+    if (user) {
+        user.lastMessage = message;
+    }
+};
+
+
+
 onMounted(() => {
     fetchUsers();
     checkMobile();
     window.addEventListener('resize', checkMobile);
     chatBoxRef.value?.addEventListener('scroll', handleScroll);
+    // Định kỳ 30s cập nhật trạng thái
+    statusInterval = setInterval(() => {
+        // Trigger lại reactive re-render bằng cách đổi mảng users shallow copy
+        users.value = [...users.value];
+    }, 30000); // 30s
     window.Echo.channel('chat')
         .listen('.message.sent', (e) => {
             // Nếu tin nhắn đến từ người khác mới push
@@ -259,15 +333,35 @@ onMounted(() => {
                     senderName: e.senderName,
                     createdAt: e.created_at
                 });
+
+                updateLastMessage(e.group_id, e.message);
+
                 nextTick(scrollToBottom);
             }
         });
+
+
+    window.Echo.channel('user-status')
+        .listen('.user.status', (e) => {
+            const user = users.value.find(u => u.id === e.user_id);
+            if (user) {
+                user.status = e.status;
+                if (e.status === 'offline') {
+                    user.last_seen = e.last_seen; // Cập nhật thời gian last_seen
+                } else if (e.status === 'online') {
+                    user.last_seen = null;  // Không cần lưu last_seen nếu đang online
+                }
+            }
+        });
+
+
 
 });
 
 onBeforeUnmount(() => {
     window.removeEventListener('resize', checkMobile);
     chatBoxRef.value?.removeEventListener('scroll', handleScroll);
+    if (statusInterval) clearInterval(statusInterval);
 });
 </script>
 
@@ -320,7 +414,9 @@ onBeforeUnmount(() => {
     flex-direction: column;
     gap: 12px;
     background-color: #fafafa;
-    scroll-behavior: smooth;
+    /* scroll-behavior: smooth; */
+
+    scroll-behavior: auto;
 }
 
 .chat-input-bar {

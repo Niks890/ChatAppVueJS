@@ -109,6 +109,7 @@ const { value: password } = useField('password');
 // Xử lý login
 const handleLogin = handleSubmit(async (values) => {
   try {
+    // console.log('Sending login request with:', values);
     const response = await api.post('/auth/login', {
       email: values.email,
       password: values.password,
