@@ -46,7 +46,7 @@
                 </div>
 
                 <!-- Tin nhắn -->
-                <div class="chat-messages">
+                <div class="chat-messages" ref="chatBoxRef">
                     <div v-if="!selectedGroup.name" class="empty-chat-message">
                         <p class="empty-chat-text">Chọn nhóm để bắt đầu trò chuyện</p>
                     </div>
