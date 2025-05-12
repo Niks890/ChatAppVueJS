@@ -45,9 +45,10 @@
               </div>
 
               <!-- Login button -->
-              <VBtn block type="submit">
-                Đăng nhập
-              </VBtn>
+            <VBtn block type="submit" :loading="isLoading" :disabled="isLoading">
+              <template v-if="!isLoading">Đăng nhập</template>
+            </VBtn>
+
             </VCol>
             <!-- create account -->
             <VCol cols="12" class="text-center text-base">
@@ -80,6 +81,8 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AuthProvider from '../../components/admin/layout/authProvider.vue';
 import api from '../../configs/axios.js';
+const isLoading = ref(false);
+
 
 // Import VeeValidate và Yup
 import { useField, useForm } from 'vee-validate';
@@ -108,33 +111,30 @@ const { value: password } = useField('password');
 
 // Xử lý login
 const handleLogin = handleSubmit(async (values) => {
+  isLoading.value = true;
+  errorMessage.value = '';
+
   try {
-    // console.log('Sending login request with:', values);
     const response = await api.post('/auth/login', {
       email: values.email,
       password: values.password,
     }, { withCredentials: true });
-    message.success({
-      content: `Đăng nhập thành công!`,
-      duration: 3,
-    });
+
+    message.success({ content: `Đăng nhập thành công!`, duration: 3 });
     router.push({ name: 'admin-dashboard' });
   } catch (error) {
     if (error.response?.status === 401) {
-      message.error({
-        content: `Email hoặc mật khẩu không đúng!`,
-        duration: 3,
-      });
+      message.error({ content: `Email hoặc mật khẩu không đúng!`, duration: 3 });
     } else if (error.response?.data?.errors) {
       const errorData = error.response.data.errors;
       errorMessage.value = Object.values(errorData).flat().join(', ');
     } else {
-      message.error({
-        content: `Đăng nhập thất bại! Vui lòng thử lại.`,
-        duration: 3,
-      });
+      message.error({ content: `Đăng nhập thất bại! Vui lòng thử lại.`, duration: 3 });
     }
     console.error('Lỗi đăng nhập:', error.response?.data);
+  } finally {
+    isLoading.value = false;
   }
 });
+
 </script>

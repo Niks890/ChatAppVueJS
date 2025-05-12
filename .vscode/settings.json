@@ -1,5 +1,4 @@
 {
-  "editor.formatOnSave": true,
   "files.insertFinalNewline": true,
   "javascript.updateImportsOnFileMove.enabled": "always",
   "[javascript]": {
@@ -90,5 +89,6 @@
         "borderStyle": "solid"
       }
     ]
-  }
+  },
+  "files.autoSave": "onWindowChange"
 }

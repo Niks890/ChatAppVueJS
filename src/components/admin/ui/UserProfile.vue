@@ -1,5 +1,4 @@
 <script setup>
-import avatar1 from '@images/avatars/avatar-1.png';
 import { message, Modal } from 'ant-design-vue';
 import { useRouter } from 'vue-router';
 import api from '../../../configs/axios.js';
@@ -8,7 +7,7 @@ import { useUserStore } from '../../../stores/userStore';
 const router = useRouter();
 const userStore = useUserStore();
 
-import { getInfoUser, userEmail, userName } from '../../../composables/userAuth.js';
+import { getInfoUser, userAvatar, userEmail, userName } from '../../../composables/userAuth.js';
 getInfoUser();
 async function logout() {
   try {
@@ -42,7 +41,7 @@ async function confirmLogout() {
 <template>
   <VBadge dot location="bottom right" offset-x="3" offset-y="3" color="success" bordered>
     <VAvatar class="cursor-pointer" color="primary" variant="tonal">
-      <VImg :src="avatar1" />
+      <VImg :src="userAvatar" />
 
       <!-- SECTION Menu -->
       <VMenu activator="parent" width="230" location="bottom end" offset="14px">
@@ -53,7 +52,7 @@ async function confirmLogout() {
               <VListItemAction start>
                 <VBadge dot location="bottom right" offset-x="3" offset-y="3" color="success">
                   <VAvatar color="primary" variant="tonal">
-                    <VImg :src="avatar1" />
+                    <VImg :src="userAvatar" />
                   </VAvatar>
                 </VBadge>
               </VListItemAction>
@@ -72,7 +71,7 @@ async function confirmLogout() {
           <VDivider class="my-2" />
 
           <!-- 👉 Profile -->
-          <VListItem to="/admin/profile">
+          <VListItem to="/admin/account-settings">
             <template #prepend>
               <VIcon class="me-2" icon="bx-user" size="22" />
             </template>
